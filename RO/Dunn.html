@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stickman Amusement Park Express</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e1b4b);
+        }
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+        .glow-text {
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+        }
+        .hud-card {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col items-center justify-between overflow-hidden p-2 md:p-4 select-none">
+
+    <!-- TOP HUD BAR (DOM Overlay) -->
+    <header class="w-full max-w-6xl hud-card rounded-2xl px-4 py-2 flex items-center justify-between shadow-2xl mb-2 z-10 border-amber-400/30">
+        <!-- Title & Conductor Info -->
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-red-500 flex items-center justify-center text-2xl shadow-lg border-2 border-white">
+                🚂
+            </div>
+            <div>
+                <h1 class="text-xl md:text-2xl font-bold bg-gradient-to-r from-amber-300 via-pink-400 to-sky-300 bg-clip-text text-transparent font-outfit leading-none">
+                    AMUSEMENT PARK EXPRESS
+                </h1>
+                <p class="text-xs text-sky-200 font-medium">Conductor: Stickman</p>
+            </div>
+        </div>
+
+        <!-- Stat Counters -->
+        <div class="flex items-center space-x-3 md:space-x-6 text-white">
+            <!-- Score -->
+            <div class="flex flex-col items-center bg-slate-800/80 px-3 py-1 rounded-xl border border-slate-700">
+                <span class="text-[10px] uppercase tracking-wider text-amber-300 font-semibold">Score</span>
+                <span id="scoreText" class="text-lg md:text-2xl font-extrabold text-amber-400 leading-tight">0</span>
+            </div>
+
+            <!-- Food Guests Rescued -->
+            <div class="flex flex-col items-center bg-slate-800/80 px-3 py-1 rounded-xl border border-slate-700">
+                <span class="text-[10px] uppercase tracking-wider text-emerald-300 font-semibold">Food Guests</span>
+                <div class="flex items-center space-x-1">
+                    <span id="guestsText" class="text-lg md:text-2xl font-extrabold text-emerald-400 leading-tight">0</span>
+                    <span class="text-sm">🍿</span>
+                </div>
+            </div>
+
+            <!-- Train Whistle Gauge -->
+            <div class="hidden sm:flex flex-col items-center bg-slate-800/80 px-3 py-1 rounded-xl border border-slate-700 w-28 md:w-36">
+                <div class="flex justify-between w-full text-[10px] font-semibold text-sky-300 uppercase mb-0.5">
+                    <span>Whistle [SPACE]</span>
+                    <span id="whistleStatusText" class="text-amber-400">READY</span>
+                </div>
+                <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-700">
+                    <div id="whistleBar" class="bg-gradient-to-r from-sky-400 to-amber-300 h-full w-full transition-all duration-75"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="flex items-center space-x-2">
+            <button onclick="toggleAudio()" id="audioBtn" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold text-xs transition flex items-center space-x-1">
+                <span id="audioIcon">🔊</span>
+            </button>
+            <button onclick="resetGame()" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white font-bold text-xs shadow-md border border-rose-300/40 transition hover:scale-105 active:scale-95">
+                Reset
+            </button>
+        </div>
+    </header>
+
+    <!-- GAME CANVAS CONTAINER -->
+    <main id="canvas-wrapper" class="relative w-full max-w-6xl flex-grow rounded-2xl overflow-hidden border-4 border-slate-700/60 shadow-2xl bg-slate-900">
+        <canvas id="gameCanvas" class="w-full h-full"></canvas>
+
+        <!-- START / OVERLAY MODAL -->
+        <div id="overlayModal" class="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 z-20">
+            <div class="max-w-md w-full bg-slate-900 border-2 border-amber-400/50 rounded-3xl p-6 shadow-2xl flex flex-col items-center">
+                <div class="w-20 h-20 rounded-2xl bg-gradient-to-tr from-amber-400 via-rose-500 to-sky-400 flex items-center justify-center text-4xl shadow-xl mb-4 border-2 border-white animate-bounce">
+                    🚂
+                </div>
+                <h2 id="modalTitle" class="text-3xl font-black text-amber-300 font-outfit uppercase tracking-wide mb-1">
+                    Stickman Express!
+                </h2>
+                <p id="modalSubtitle" class="text-sm text-sky-200 mb-4">
+                    Drive Stickman's train through the amusement park, rescue delicious food guests, and scare away fairytale villains with your whistle!
+                </p>
+
+                <!-- Instructions Card -->
+                <div class="w-full bg-slate-800/90 rounded-2xl p-4 text-left border border-slate-700 mb-6 space-y-2 text-xs text-slate-200">
+                    <div class="flex items-center space-x-3">
+                        <span class="px-2 py-1 bg-amber-500 text-slate-950 font-bold rounded-lg font-mono">WASD</span>
+                        <span>Drive the Train Engine (Exclusive movement)</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="px-2.5 py-1 bg-sky-400 text-slate-950 font-bold rounded-lg font-mono">SPACE</span>
+                        <span>Blow Train Whistle to scare Fairytale Enemies!</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-lg">🍿🍦🌭</span>
+                        <span>Pick up Food Guests to grow your Train Tail & score!</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-lg">🧙‍♀️🐺🐉</span>
+                        <span>Watch out for Fairytale Characters! Whistle at them!</span>
+                    </div>
+                </div>
+
+                <button onclick="startGame()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-500 hover:to-teal-600 text-slate-950 font-extrabold text-lg uppercase tracking-wider shadow-lg transform transition hover:scale-105 active:scale-95 border-2 border-emerald-200">
+                    Start Driving!
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER CONTROLS BAR -->
+    <footer class="w-full max-w-6xl mt-2 flex items-center justify-between text-[11px] text-slate-400 px-2 font-medium">
+        <div class="flex items-center space-x-4">
+            <span class="bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700 text-slate-300">
+                <strong class="text-amber-400">Controls:</strong> [W] Up | [A] Left | [S] Down | [D] Right | [SPACE / SHIFT] Whistle
+            </span>
+        </div>
+        <div class="hidden md:block text-slate-400">
+            Target Resolution: Chromebook 1366x768 • High-Contrast Mode
+        </div>
+    </footer>
+
+    <!-- GAME ENGINE CODE -->
+    <script>
+        // WEB AUDIO API SYNTHESIZER
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) this.ctx = new AudioContext();
+                }
+            }
+
+            playWhistle() {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                
+                // Dual tone train whistle sound
+                [523.25, 659.25, 783.99].forEach(freq => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now);
+                    osc.frequency.exponentialRampToValueAtTime(freq * 1.05, now + 0.3);
+                    
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                });
+            }
+
+            playPickup() {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+
+            playScare() {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.linearRampToValueAtTime(120, now + 0.25);
+
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+        }
+
+        const audio = new SoundEngine();
+
+        function toggleAudio() {
+            audio.enabled = !audio.enabled;
+            document.getElementById('audioIcon').innerText = audio.enabled ? '🔊' : '🔇';
+        }
+
+        // CANVAS & CANVAS RENDER STATE
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // GAME RUNTIME STATE
+        let gameActive = false;
+        let score = 0;
+        let guestsRescued = 0;
+        let highScore = 0;
+
+        // KEYBOARD STATE ENGINE
+        const keys = {};
+
+        // PREVENT KEY DRIFT & INTERCEPT KEYS
+        window.addEventListener('keydown', (e) => {
+            // Block Arrow Keys explicitly to force WASD
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+                e.preventDefault();
+                return;
+            }
+            if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'ShiftLeft', 'ShiftRight'].includes(e.code)) {
+                if (e.code === 'Space') e.preventDefault();
+                keys[e.code] = true;
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'ShiftLeft', 'ShiftRight'].includes(e.code)) {
+                keys[e.code] = false;
+            }
+        });
+
+        // Drift Prevention Event Listeners
+        const clearKeys = () => { for (let k in keys) keys[k] = false; };
+        window.addEventListener('blur', clearKeys);
+        window.addEventListener('mouseleave', clearKeys);
+        document.addEventListener('visibilitychange', () => { if (document.hidden) clearKeys(); });
+
+        // PLAYER / TRAIN STATE
+        const train = {
+            x: 0,
+            y: 0,
+            speed: 4.8,
+            angle: 0,
+            targetAngle: 0,
+            history: [], // Stores trailing positions for train cars
+            whistleCooldown: 0,
+            maxWhistleCooldown: 90, // Frames (~1.5s)
+            whistleActive: false,
+            whistleRadius: 0,
+            maxWhistleRadius: 130
+        };
+
+        // ENTITIES LISTS
+        let foodGuests = [];
+        let enemies = [];
+        let particles = [];
+        let floatingTexts = [];
+
+        // FOOD TYPES & EMOJI DEFINITIONS
+        const FOOD_TYPES = [
+            { name: 'Popcorn', emoji: '🍿', color: '#fef08a' },
+            { name: 'Cotton Candy', emoji: '🍡', color: '#f472b6' },
+            { name: 'Hot Dog', emoji: '🌭', color: '#fb923c' },
+            { name: 'Ice Cream', emoji: '🍦', color: '#38bdf8' },
+            { name: 'Pretzel', emoji: '🥨', color: '#d97706' },
+            { name: 'Apple', emoji: '🍎', color: '#ef4444' }
+        ];
+
+        // FAIRYTALE ENEMY TYPES
+        const ENEMY_TYPES = [
+            { name: 'Big Bad Wolf', emoji: '🐺', speed: 1.8, radius: 20 },
+            { name: 'Wicked Witch', emoji: '🧙‍♀️', speed: 2.2, radius: 18 },
+            { name: 'Evil Dragon', emoji: '🐉', speed: 2.0, radius: 22 },
+            { name: 'Sly Goblin', emoji: '👺', speed: 2.4, radius: 16 }
+        ];
+
+        // RESIZING & CANVAS SCALING
+        function resizeCanvas() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            canvas.width = wrapper.clientWidth;
+            canvas.height = wrapper.clientHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // GAME INITIALIZATION
+        function startGame() {
+            audio.init();
+            document.getElementById('overlayModal').classList.add('hidden');
+            score = 0;
+            guestsRescued = 0;
+            updateHUD();
+
+            train.x = canvas.width / 2;
+            train.y = canvas.height / 2;
+            train.angle = 0;
+            train.history = [];
+            train.whistleCooldown = 0;
+
+            foodGuests = [];
+            enemies = [];
+            particles = [];
+            floatingTexts = [];
+
+            // Spawn Initial Food Guests & Enemies
+            for (let i = 0; i < 7; i++) spawnFoodGuest();
+            for (let i = 0; i < 4; i++) spawnEnemy();
+
+            gameActive = true;
+        }
+
+        function resetGame() {
+            document.getElementById('modalTitle').innerText = "Stickman Express!";
+            document.getElementById('modalSubtitle').innerText = "Ready for another trip around the park? Drive safely!";
+            document.getElementById('overlayModal').classList.remove('hidden');
+            gameActive = false;
+        }
+
+        function gameOver() {
+            gameActive = false;
+            audio.playScare();
+            if (score > highScore) highScore = score;
+
+            document.getElementById('modalTitle').innerText = "Train Stopped!";
+            document.getElementById('modalSubtitle').innerText = `You rescued ${guestsRescued} Food Guests and scored ${score} points!`;
+            document.getElementById('overlayModal').classList.remove('hidden');
+        }
+
+        function updateHUD() {
+            document.getElementById('scoreText').innerText = score;
+            document.getElementById('guestsText').innerText = guestsRescued;
+        }
+
+        // SPAWN HELPER FUNCTIONS
+        function spawnFoodGuest() {
+            const margin = 60;
+            foodGuests.push({
+                x: margin + Math.random() * (canvas.width - margin * 2),
+                y: margin + Math.random() * (canvas.height - margin * 2),
+                type: FOOD_TYPES[Math.floor(Math.random() * FOOD_TYPES.length)],
+                pulse: Math.random() * Math.PI * 2
+            });
+        }
+
+        function spawnEnemy() {
+            // Spawn along edges
+            let x, y;
+            if (Math.random() < 0.5) {
+                x = Math.random() < 0.5 ? 20 : canvas.width - 20;
+                y = Math.random() * canvas.height;
+            } else {
+                x = Math.random() * canvas.width;
+                y = Math.random() < 0.5 ? 20 : canvas.height - 20;
+            }
+
+            const type = ENEMY_TYPES[Math.floor(Math.random() * ENEMY_TYPES.length)];
+            enemies.push({
+                x: x,
+                y: y,
+                vx: 0,
+                vy: 0,
+                type: type,
+                scared: false,
+                scaredTimer: 0
+            });
+        }
+
+        function addFloatingText(x, y, text, color = '#fde047') {
+            floatingTexts.push({
+                x: x,
+                y: y,
+                text: text,
+                color: color,
+                alpha: 1.0,
+                life: 45
+            });
+        }
+
+        // PHYSICS & GAME UPDATES
+        function updatePhysics() {
+            if (!gameActive) return;
+
+            // WASD Direction Vector Calculation
+            let dx = 0;
+            let dy = 0;
+
+            if (keys['KeyW']) dy -= 1;
+            if (keys['KeyS']) dy += 1;
+            if (keys['KeyA']) dx -= 1;
+            if (keys['KeyD']) dx += 1;
+
+            // Normalize diagonal movement speed
+            if (dx !== 0 && dy !== 0) {
+                dx *= 0.7071;
+                dy *= 0.7071;
+            }
+
+            // Update position
+            if (dx !== 0 || dy !== 0) {
+                train.x += dx * train.speed;
+                train.y += dy * train.speed;
+                train.targetAngle = Math.atan2(dy, dx);
+
+                // Smooth rotation angle
+                let diff = train.targetAngle - train.angle;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                train.angle += diff * 0.2;
+
+                // Record historical position for passenger cars
+                train.history.unshift({ x: train.x, y: train.y, angle: train.angle });
+                if (train.history.length > 300) train.history.pop();
+            }
+
+            // Keep inside screen boundaries
+            const pad = 25;
+            train.x = Math.max(pad, Math.min(canvas.width - pad, train.x));
+            train.y = Math.max(pad, Math.min(canvas.height - pad, train.y));
+
+            // Whistle Action Processing (SPACE or SHIFT)
+            if (train.whistleCooldown > 0) {
+                train.whistleCooldown--;
+            }
+
+            if ((keys['Space'] || keys['ShiftLeft'] || keys['ShiftRight']) && train.whistleCooldown === 0) {
+                train.whistleCooldown = train.maxWhistleCooldown;
+                train.whistleActive = true;
+                train.whistleRadius = 10;
+                audio.playWhistle();
+
+                // Steam Particle FX
+                for (let i = 0; i < 24; i++) {
+                    const angle = (Math.PI * 2 / 24) * i;
+                    particles.push({
+                        x: train.x,
+                        y: train.y,
+                        vx: Math.cos(angle) * (3 + Math.random() * 3),
+                        vy: Math.sin(angle) * (3 + Math.random() * 3),
+                        radius: 8 + Math.random() * 8,
+                        alpha: 0.9,
+                        color: '#f0f9ff'
+                    });
+                }
+            }
+
+            // Update active Whistle Sound Wave expansion
+            if (train.whistleActive) {
+                train.whistleRadius += 7;
+
+                // Scare/Push Back Enemies in range
+                enemies.forEach(enemy => {
+                    const dist = Math.hypot(enemy.x - train.x, enemy.y - train.y);
+                    if (dist < train.whistleRadius + 20 && !enemy.scared) {
+                        enemy.scared = true;
+                        enemy.scaredTimer = 120; // 2 seconds of fleeing/stun
+                        audio.playScare();
+
+                        // Push back away from train
+                        const pushAngle = Math.atan2(enemy.y - train.y, enemy.x - train.x);
+                        enemy.vx = Math.cos(pushAngle) * 8;
+                        enemy.vy = Math.sin(pushAngle) * 8;
+
+                        score += 200;
+                        updateHUD();
+                        addFloatingText(enemy.x, enemy.y - 10, "+200 SCARED!", "#38bdf8");
+                    }
+                });
+
+                if (train.whistleRadius >= train.maxWhistleRadius) {
+                    train.whistleActive = false;
+                }
+            }
+
+            // Update UI Whistle Bar
+            const whistlePct = Math.min(100, ((train.maxWhistleCooldown - train.whistleCooldown) / train.maxWhistleCooldown) * 100);
+            const whistleBar = document.getElementById('whistleBar');
+            const whistleStatus = document.getElementById('whistleStatusText');
+            if (whistleBar) whistleBar.style.width = `${whistlePct}%`;
+            if (whistleStatus) {
+                whistleStatus.innerText = whistlePct === 100 ? 'READY' : 'RECHARGING';
+                whistleStatus.className = whistlePct === 100 ? 'text-amber-400 font-bold' : 'text-slate-400';
+            }
+
+            // Food Guest Collection Check
+            foodGuests.forEach((guest, index) => {
+                guest.pulse += 0.08;
+                const dist = Math.hypot(guest.x - train.x, guest.y - train.y);
+                if (dist < 32) {
+                    // Picked up food item!
+                    audio.playPickup();
+                    score += 100;
+                    guestsRescued++;
+                    updateHUD();
+
+                    addFloatingText(guest.x, guest.y, `+100 ${guest.type.name}!`, "#fde047");
+
+                    // Pickup Particle FX
+                    for (let p = 0; p < 12; p++) {
+                        particles.push({
+                            x: guest.x,
+                            y: guest.y,
+                            vx: (Math.random() - 0.5) * 5,
+                            vy: (Math.random() - 0.5) * 5,
+                            radius: 4 + Math.random() * 4,
+                            alpha: 1,
+                            color: guest.type.color
+                        });
+                    }
+
+                    // Remove collected guest and spawn new ones
+                    foodGuests.splice(index, 1);
+                    spawnFoodGuest();
+
+                    // Every 5 rescues, add an enemy to scale fun challenge
+                    if (guestsRescued % 4 === 0) spawnEnemy();
+                }
+            });
+
+            // Enemies Update AI
+            enemies.forEach(enemy => {
+                if (enemy.scared) {
+                    enemy.x += enemy.vx;
+                    enemy.y += enemy.vy;
+                    enemy.vx *= 0.92;
+                    enemy.vy *= 0.92;
+
+                    enemy.scaredTimer--;
+                    if (enemy.scaredTimer <= 0) enemy.scared = false;
+                } else {
+                    // Chasing Train Logic
+                    const angle = Math.atan2(train.y - enemy.y, train.x - enemy.x);
+                    enemy.x += Math.cos(angle) * enemy.type.speed;
+                    enemy.y += Math.sin(angle) * enemy.type.speed;
+                }
+
+                // Keep enemies within canvas
+                enemy.x = Math.max(15, Math.min(canvas.width - 15, enemy.x));
+                enemy.y = Math.max(15, Math.min(canvas.height - 15, enemy.y));
+
+                // Collision with Player Engine
+                const hitDist = Math.hypot(enemy.x - train.x, enemy.y - train.y);
+                if (hitDist < 26 && !enemy.scared) {
+                    gameOver();
+                }
+            });
+
+            // Particles Update
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.025;
+                if (p.alpha <= 0) particles.splice(i, 1);
+            }
+
+            // Floating Text Update
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                const ft = floatingTexts[i];
+                ft.y -= 1.2;
+                ft.life--;
+                ft.alpha = ft.life / 45;
+                if (ft.life <= 0) floatingTexts.splice(i, 1);
+            }
+        }
+
+        // DRAWING / RENDER METHODS
+        function drawAmusementParkBackground() {
+            // Soft grassy floor with subtle grid lines
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Path grid layout
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1;
+            const step = 60;
+            for (let x = 0; x < canvas.width; x += step) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += step) {
+                ctx.beginPath();
+                ctx.moveTo(0, y); ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Park Attraction 1: Animated Ferris Wheel (Top Right)
+            const fwX = canvas.width - 110;
+            const fwY = 110;
+            const time = Date.now() * 0.001;
+
+            // Stand
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(fwX - 35, fwY + 60); ctx.lineTo(fwX, fwY); ctx.lineTo(fwX + 35, fwY + 60);
+            ctx.stroke();
+
+            // Wheel Rim
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(fwX, fwY, 45, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Spokes & Cabins
+            for (let i = 0; i < 6; i++) {
+                const spokeAngle = time + (Math.PI / 3) * i;
+                const cx = fwX + Math.cos(spokeAngle) * 45;
+                const cy = fwY + Math.sin(spokeAngle) * 45;
+
+                ctx.strokeStyle = '#0284c7';
+                ctx.beginPath();
+                ctx.moveTo(fwX, fwY); ctx.lineTo(cx, cy);
+                ctx.stroke();
+
+                // Cabins
+                ctx.fillStyle = (i % 2 === 0) ? '#f43f5e' : '#f59e0b';
+                ctx.beginPath();
+                ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Park Attraction 2: Circus Tent (Top Left)
+            const ctX = 100;
+            const ctY = 90;
+            // Base Tent Stripes
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.moveTo(ctX - 45, ctY + 30);
+            ctx.lineTo(ctX, ctY - 25);
+            ctx.lineTo(ctX + 45, ctY + 30);
+            ctx.fill();
+
+            ctx.fillStyle = '#f8fafc';
+            ctx.beginPath();
+            ctx.moveTo(ctX - 15, ctY + 30);
+            ctx.lineTo(ctX, ctY - 25);
+            ctx.lineTo(ctX + 15, ctY + 30);
+            ctx.fill();
+
+            // Flag
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(ctX, ctY - 25); ctx.lineTo(ctX, ctY - 38);
+            ctx.stroke();
+            ctx.fillStyle = '#f43f5e';
+            ctx.beginPath();
+            ctx.moveTo(ctX, ctY - 38); ctx.lineTo(ctX + 12, ctY - 32); ctx.lineTo(ctX, ctY - 26);
+            ctx.fill();
+
+            // Park Decorative Railway Tracks Loops
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) * 0.35, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        function drawTrainEngine(x, y, angle) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+
+            // Train Engine Body (Bold colorful)
+            ctx.fillStyle = '#f59e0b'; // Bright amber
+            ctx.beginPath();
+            ctx.roundRect(-22, -14, 38, 28, 6);
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Engine Cabin
+            ctx.fillStyle = '#ef4444'; // Bright Red
+            ctx.beginPath();
+            ctx.roundRect(-20, -13, 16, 26, 4);
+            ctx.fill();
+
+            // Chimney Stack
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(8, -18, 7, 7);
+
+            // Wheels
+            ctx.fillStyle = '#334155';
+            ctx.beginPath();
+            ctx.arc(-10, 14, 5, 0, Math.PI * 2);
+            ctx.arc(8, 14, 5, 0, Math.PI * 2);
+            ctx.arc(-10, -14, 5, 0, Math.PI * 2);
+            ctx.arc(8, -14, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // STICKMAN CONDUCTOR
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            // Head
+            ctx.beginPath();
+            ctx.arc(-12, -2, 5, 0, Math.PI * 2);
+            ctx.stroke();
+            // Conductor Hat
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(-16, -10, 9, 3);
+
+            ctx.restore();
+        }
+
+        function drawPassengerCar(x, y, angle, foodType, index) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+
+            // Car Base
+            ctx.fillStyle = foodType ? foodType.color : '#38bdf8';
+            ctx.beginPath();
+            ctx.roundRect(-14, -11, 28, 22, 5);
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Food Guest Emoji seated in car!
+            if (foodType) {
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(foodType.emoji, 0, -1);
+            }
+
+            ctx.restore();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Background Amusement Park World
+            drawAmusementParkBackground();
+
+            // Draw Whistle Blast Sonic Wave Particle Effects
+            if (train.whistleActive) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(train.x, train.y, train.whistleRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)';
+                ctx.lineWidth = 8;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(train.x, train.y, train.whistleRadius * 0.7, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(254, 240, 138, 0.5)';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Draw Food Guests
+            foodGuests.forEach(guest => {
+                const scale = 1 + Math.sin(guest.pulse) * 0.1;
+                ctx.save();
+                ctx.translate(guest.x, guest.y);
+                ctx.scale(scale, scale);
+
+                // Glow ring
+                ctx.fillStyle = 'rgba(254, 240, 138, 0.25)';
+                ctx.beginPath();
+                ctx.arc(0, 0, 20, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Food Emoji
+                ctx.font = '24px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(guest.type.emoji, 0, 0);
+                ctx.restore();
+            });
+
+            // Draw Trailing Passenger Train Cars (Attached behind train)
+            const carSpacing = 16;
+            for (let i = 0; i < guestsRescued; i++) {
+                const historyIdx = (i + 1) * carSpacing;
+                if (train.history[historyIdx]) {
+                    const pos = train.history[historyIdx];
+                    const foodType = FOOD_TYPES[i % FOOD_TYPES.length];
+                    drawPassengerCar(pos.x, pos.y, pos.angle, foodType, i);
+                }
+            }
+
+            // Draw Main Stickman Engine
+            drawTrainEngine(train.x, train.y, train.angle);
+
+            // Draw Fairytale Enemies
+            enemies.forEach(enemy => {
+                ctx.save();
+                ctx.translate(enemy.x, enemy.y);
+
+                if (enemy.scared) {
+                    // Flash effect when scared
+                    ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 22, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.font = enemy.scared ? '28px sans-serif' : '26px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(enemy.type.emoji, 0, 0);
+
+                ctx.restore();
+            });
+
+            // Render Steam / Star Particles
+            particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            // Render Floating Pop-up Score Texts
+            floatingTexts.forEach(ft => {
+                ctx.save();
+                ctx.globalAlpha = ft.alpha;
+                ctx.fillStyle = ft.color;
+                ctx.font = 'bold 16px Outfit, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+            });
+        }
+
+        // MAIN ANIMATION LOOP
+        function animate() {
+            updatePhysics();
+            draw();
+            requestAnimationFrame(animate);
+        }
+
+        // WINDOW LOAD INITIALIZATION
+        window.onload = function() {
+            resizeCanvas();
+            animate();
+        };
+    </script>
+</body>
+</html>
