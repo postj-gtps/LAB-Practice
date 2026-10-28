@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stickman STEM Lab 🚀 Student Projects</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for K-6 Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'sans-serif'],
+                        nunito: ['Nunito', 'sans-serif'],
+                    },
+                    animation: {
+                        'bounce-slow': 'bounce 2s infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #0F172A;
+            background-image: 
+                radial-gradient(at 10% 10%, rgba(124, 58, 237, 0.25) 0px, transparent 50%),
+                radial-gradient(at 90% 10%, rgba(236, 72, 153, 0.25) 0px, transparent 50%),
+                radial-gradient(at 50% 90%, rgba(59, 130, 246, 0.25) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        .heading-font {
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        /* Glassmorphism card styling */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(245, 158, 11, 0.6);
+            box-shadow: 0 12px 35px -10px rgba(245, 158, 11, 0.35);
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-yellow-400 selection:text-slate-900">
+
+    <!-- TOP NAVIGATION & HUD -->
+    <header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-4 py-3">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            
+            <!-- Logo / Title -->
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-purple-600 to-pink-500 p-2.5 rounded-2xl shadow-lg shadow-purple-500/30 animate-bounce-slow">
+                    <span class="text-2xl">🏃‍♂️</span>
+                </div>
+                <div>
+                    <h1 class="heading-font text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-pink-400 to-cyan-400">
+                        Stickman STEM Lab
+                    </h1>
+                    <p class="text-xs text-slate-400 font-semibold tracking-wide">STUDENT PROJECT PORTAL</p>
+                </div>
+            </div>
+
+            <!-- Gamification Stars & Sound Toggle -->
+            <div class="flex items-center space-x-3">
+                <div class="bg-slate-800/90 border border-yellow-500/40 px-3.5 py-1.5 rounded-full flex items-center space-x-2 shadow-inner">
+                    <span class="text-xl animate-pulse">⭐</span>
+                    <span id="starCounter" class="heading-font font-bold text-yellow-400 text-lg">0</span>
+                </div>
+
+                <button id="soundToggle" onclick="toggleSound()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2.5 rounded-2xl transition duration-200" title="Toggle Sound">
+                    <span id="soundIcon" class="text-xl">🔊</span>
+                </button>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT: 4 STUDENT HTML FILES -->
+    <main class="max-w-5xl mx-auto px-4 py-10 w-full flex-grow flex flex-col justify-center">
+        
+        <!-- Header Title -->
+        <div class="text-center mb-10 space-y-3">
+            <h2 class="heading-font text-3xl sm:text-4xl md:text-5xl font-black tracking-wide">
+                Select a <span class="bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 via-pink-400 to-cyan-400">Student Lab Project</span>
+            </h2>
+            <p class="text-slate-300 text-base md:text-lg max-w-xl mx-auto font-medium">
+                Click any project below to preview directly in your browser or open the HTML file.
+            </p>
+        </div>
+
+        <!-- 4 PROJECT BUTTON CARDS GRID -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto w-full">
+
+            <!-- 1. AR - Post.html -->
+            <div class="glass-card rounded-3xl p-6 flex flex-col justify-between transition-all duration-300 hover:-translate-y-2 bg-gradient-to-br from-purple-900/30 to-indigo-900/20">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-4xl bg-purple-950/80 p-3 rounded-2xl border border-purple-500/40 shadow">🚀</span>
+                        <span class="heading-font text-xs font-bold px-3.5 py-1.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 uppercase tracking-wider">
+                            Folder: AR
+                        </span>
+                    </div>
+
+                    <p class="text-xs font-extrabold text-yellow-400 uppercase tracking-widest mb-1">Author: Post</p>
+                    <h3 class="heading-font text-2xl font-bold text-white mb-1">Post.html</h3>
+                    <p class="text-xs text-slate-400 font-mono mb-6">./AR/Post.html</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pt-4 border-t border-slate-700/50">
+                    <button onclick="openModal('./AR/Post.html', 'Post.html (AR Lab)', '🚀'); addStar();" 
+                        class="heading-font bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3 px-3 rounded-2xl shadow transition transform active:scale-95 text-sm flex items-center justify-center space-x-1">
+                        <span>👁️ Preview</span>
+                    </button>
+                    <a href="./AR/Post.html" target="_blank" rel="noopener noreferrer" 
+                        class="heading-font bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold py-3 px-3 rounded-2xl transition text-sm flex items-center justify-center space-x-1">
+                        <span>↗️ Open</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 2. RO - Dunn.html -->
+            <div class="glass-card rounded-3xl p-6 flex flex-col justify-between transition-all duration-300 hover:-translate-y-2 bg-gradient-to-br from-emerald-900/30 to-teal-900/20">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-4xl bg-emerald-950/80 p-3 rounded-2xl border border-emerald-500/40 shadow">🤖</span>
+                        <span class="heading-font text-xs font-bold px-3.5 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase tracking-wider">
+                            Folder: RO
+                        </span>
+                    </div>
+
+                    <p class="text-xs font-extrabold text-yellow-400 uppercase tracking-widest mb-1">Author: Dunn</p>
+                    <h3 class="heading-font text-2xl font-bold text-white mb-1">Dunn.html</h3>
+                    <p class="text-xs text-slate-400 font-mono mb-6">./RO/Dunn.html</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pt-4 border-t border-slate-700/50">
+                    <button onclick="openModal('./RO/Dunn.html', 'Dunn.html (RO Lab)', '🤖'); addStar();" 
+                        class="heading-font bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3 px-3 rounded-2xl shadow transition transform active:scale-95 text-sm flex items-center justify-center space-x-1">
+                        <span>👁️ Preview</span>
+                    </button>
+                    <a href="./RO/Dunn.html" target="_blank" rel="noopener noreferrer" 
+                        class="heading-font bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold py-3 px-3 rounded-2xl transition text-sm flex items-center justify-center space-x-1">
+                        <span>↗️ Open</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 3. RR - Buck.html -->
+            <div class="glass-card rounded-3xl p-6 flex flex-col justify-between transition-all duration-300 hover:-translate-y-2 bg-gradient-to-br from-pink-900/30 to-rose-900/20">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-4xl bg-pink-950/80 p-3 rounded-2xl border border-pink-500/40 shadow">⚡</span>
+                        <span class="heading-font text-xs font-bold px-3.5 py-1.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/40 uppercase tracking-wider">
+                            Folder: RR
+                        </span>
+                    </div>
+
+                    <p class="text-xs font-extrabold text-yellow-400 uppercase tracking-widest mb-1">Author: Buck</p>
+                    <h3 class="heading-font text-2xl font-bold text-white mb-1">Buck.html</h3>
+                    <p class="text-xs text-slate-400 font-mono mb-6">./RR/Buck.html</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pt-4 border-t border-slate-700/50">
+                    <button onclick="openModal('./RR/Buck.html', 'Buck.html (RR Lab)', '⚡'); addStar();" 
+                        class="heading-font bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-bold py-3 px-3 rounded-2xl shadow transition transform active:scale-95 text-sm flex items-center justify-center space-x-1">
+                        <span>👁️ Preview</span>
+                    </button>
+                    <a href="./RR/Buck.html" target="_blank" rel="noopener noreferrer" 
+                        class="heading-font bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold py-3 px-3 rounded-2xl transition text-sm flex items-center justify-center space-x-1">
+                        <span>↗️ Open</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 4. SM - Fryling.html -->
+            <div class="glass-card rounded-3xl p-6 flex flex-col justify-between transition-all duration-300 hover:-translate-y-2 bg-gradient-to-br from-cyan-900/30 to-blue-900/20">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-4xl bg-cyan-950/80 p-3 rounded-2xl border border-cyan-500/40 shadow">🎨</span>
+                        <span class="heading-font text-xs font-bold px-3.5 py-1.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 uppercase tracking-wider">
+                            Folder: SM
+                        </span>
+                    </div>
+
+                    <p class="text-xs font-extrabold text-yellow-400 uppercase tracking-widest mb-1">Author: Fryling</p>
+                    <h3 class="heading-font text-2xl font-bold text-white mb-1">Fryling.html</h3>
+                    <p class="text-xs text-slate-400 font-mono mb-6">./SM/Fryling.html</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pt-4 border-t border-slate-700/50">
+                    <button onclick="openModal('./SM/Fryling.html', 'Fryling.html (SM Lab)', '🎨'); addStar();" 
+                        class="heading-font bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 px-3 rounded-2xl shadow transition transform active:scale-95 text-sm flex items-center justify-center space-x-1">
+                        <span>👁️ Preview</span>
+                    </button>
+                    <a href="./SM/Fryling.html" target="_blank" rel="noopener noreferrer" 
+                        class="heading-font bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold py-3 px-3 rounded-2xl transition text-sm flex items-center justify-center space-x-1">
+                        <span>↗️ Open</span>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-slate-800 bg-slate-900/90 py-6 px-4 text-center text-slate-400 text-sm">
+        <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center space-x-2">
+                <span class="text-xl">🎓</span>
+                <span class="heading-font font-bold text-slate-200">K-6 STEM Animation Lab</span>
+            </div>
+            <p>© LAB Practice - Student Showcase</p>
+        </div>
+    </footer>
+
+    <!-- INTERACTIVE MODAL PREVIEWER -->
+    <div id="projectModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md transition-opacity">
+        <div class="bg-slate-900 border-2 border-purple-500/40 rounded-3xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl overflow-hidden relative">
+            
+            <!-- Modal Header -->
+            <div class="bg-slate-800/90 border-b border-slate-700 px-5 py-3.5 flex items-center justify-between shrink-0">
+                <div class="flex items-center space-x-3 overflow-hidden">
+                    <span id="modalIcon" class="text-2xl shrink-0">🏃‍♂️</span>
+                    <div class="truncate">
+                        <h4 id="modalTitle" class="heading-font text-lg md:text-xl font-bold text-yellow-400 truncate">Project Title</h4>
+                        <p id="modalPath" class="text-xs text-slate-400 font-mono truncate">./path/to/file.html</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2 shrink-0">
+                    <a id="modalExternalBtn" href="#" target="_blank" rel="noopener noreferrer" 
+                        class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition flex items-center space-x-1"
+                        title="Open in a new tab">
+                        <span>↗️ New Tab</span>
+                    </a>
+                    <button onclick="closeModal()" class="bg-slate-700 hover:bg-red-600 text-slate-200 hover:text-white p-2 rounded-xl transition font-bold" title="Close Preview">
+                        ✖️
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Content Area -->
+            <div class="relative flex-grow bg-slate-950 w-full overflow-hidden">
+                <!-- Loading Overlay -->
+                <div id="modalLoading" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-10">
+                    <div class="w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
+                    <p class="mt-3 text-slate-400 font-bold heading-font text-sm">Loading Project File...</p>
+                </div>
+
+                <!-- Web Frame -->
+                <iframe id="modalIframe" src="" class="w-full h-full border-0 hidden"></iframe>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="bg-slate-800/80 border-t border-slate-700 px-5 py-2.5 flex items-center justify-between text-xs text-slate-400 shrink-0">
+                <span>💡 Tip: Click "New Tab" if you want to expand the project fullscreen!</span>
+                <button onclick="addStar(); playSuccessTone();" class="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/40 px-3 py-1 rounded-lg font-bold transition">
+                    ⭐ Give Star!
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        /* WEB AUDIO SYNTHESIZER */
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) audioCtx = new AudioContext();
+            }
+        }
+
+        function playBeep(freq = 440, duration = 0.1, type = 'sine') {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                if (!audioCtx) return;
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                
+                gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                console.warn("Audio error:", e);
+            }
+        }
+
+        function playSuccessTone() {
+            if (!soundEnabled) return;
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, idx) => {
+                setTimeout(() => playBeep(freq, 0.12, 'triangle'), idx * 70);
+            });
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundIcon').textContent = soundEnabled ? '🔊' : '🔇';
+            if (soundEnabled) playBeep(600, 0.1);
+        }
+
+        /* STARS GAMIFICATION */
+        let starsCount = 0;
+        function addStar(amount = 1) {
+            starsCount += amount;
+            const el = document.getElementById('starCounter');
+            el.textContent = starsCount;
+            el.classList.add('scale-125', 'text-yellow-300');
+            setTimeout(() => el.classList.remove('scale-125', 'text-yellow-300'), 200);
+            playBeep(880, 0.08, 'sine');
+        }
+
+        /* MODAL PREVIEWER LOGIC */
+        function openModal(filePath, title, icon = '📁') {
+            const modal = document.getElementById('projectModal');
+            const iframe = document.getElementById('modalIframe');
+            const loading = document.getElementById('modalLoading');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalPath = document.getElementById('modalPath');
+            const modalIcon = document.getElementById('modalIcon');
+            const externalBtn = document.getElementById('modalExternalBtn');
+
+            modalTitle.textContent = title;
+            modalPath.textContent = filePath;
+            modalIcon.textContent = icon;
+            externalBtn.href = filePath;
+
+            loading.classList.remove('hidden');
+            iframe.classList.add('hidden');
+
+            modal.classList.remove('hidden');
+            playBeep(600, 0.15, 'triangle');
+
+            iframe.onload = hideModalLoading;
+            iframe.src = filePath;
+
+            // Timeout safety fallback for iframe loading
+            setTimeout(() => {
+                hideModalLoading();
+            }, 800);
+        }
+
+        function hideModalLoading() {
+            document.getElementById('modalLoading').classList.add('hidden');
+            document.getElementById('modalIframe').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('projectModal');
+            const iframe = document.getElementById('modalIframe');
+            modal.classList.add('hidden');
+            iframe.src = '';
+            playBeep(300, 0.1);
+        }
+    </script>
+</body>
+</html>
