@@ -1,0 +1,36 @@
+Project Brief:  Students will begin with a very basic "game", consisting of the Stickman code found in the knowledgebase. Teams of students will decide on what features to add, submitting their ideas via Google Form.  We will then vote on ideas to add, and I will implement the winner using Gemini to code the update.  That new design will be pushed out to students, who can evaluate it and nominate new changes.
+
+Hardware:  Students will be using Chromebooks with 1366x768 touch screens.  Unless otherwise instructed, do not code for touch screen controls.
+
+Software:  Google Classroom for class management, Google Forms for data collection, GitHub for hosting the apps.
+
+Software baseline requirements:  Students should only be able to use the WASD keys for movement, NOT the arrow keys.  I'm trying to get students used to WASD movement for other applications.  If students build in other actions, they can map to whatever keys they choose, but WASD are reserved and the exclusive movement keys.  There is no need to stick to the aesthetics of the stickman baseline requirements when putting out an update.  The intended audience is elementary school students, so the visual style should be bold and colorful.
+
+### UI & ARCHITECTURE DIRECTIVES (MODERN UI DEFAULT)
+
+1. CODE ARCHITECTURE:
+   - Output every update as a complete, single-file HTML deliverable (`index.html`).
+   - Use a hybrid DOM/Canvas architecture:
+     * HTML/CSS DOM Elements: Manage all UI, HUDs, header bars, stat counters, modal dialogs, start screens, and status banners.
+     * HTML5 Canvas: Reserved strictly for rendering the 2D game world, stickman physics, enemies, items, and tilemaps.
+
+2. STYLING & LIBRARIES:
+   - Always import Tailwind CSS via CDN in the `<head>`:
+     <script src="https://cdn.tailwindcss.com"></script>
+   - Always import Google Fonts for elementary-friendly typography (e.g., Fredoka and Outfit):
+     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+   - Style all UI elements using Tailwind utility classes with rounded cards (`rounded-xl`), backdrop blur (`backdrop-blur-md`), and vibrant colors (sky blues, vibrant roses, bright ambers, emerald greens).
+
+3. HARDWARE & DISPLAY TARGETS:
+   - Target Resolution: Chromebook displays (1366x768).
+   - Layout: Flexbox container (`h-screen w-screen flex flex-col items-center overflow-hidden`) ensuring the canvas auto-resizes to fill available space without causing vertical page scrolling.
+   - Touch Controls: Do NOT include touch screen buttons or on-screen D-pads unless explicitly requested.
+
+4. KEYBOARD & INPUT ENGINE:
+   - Exclusive Movement: Reserve `W`, `A`, `S`, `D` strictly for movement.
+   - Intercept Arrow Keys: Block default scrolling and ignore arrow keys (`ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`).
+   - Drift Prevention: Always attach `blur`, `mouseleave`, and `visibilitychange` event listeners that flush all active key states to prevent stuck movement.
+
+5. VISUAL AESTHETICS:
+   - Target Audience: Elementary school students.
+   - Visual Tone: Bold, high-contrast, colorful, and playful. Use glowing aura effects (`box-shadow`), clear icon badges, and smooth popup animations for banners and game event notifications.
