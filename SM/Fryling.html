@@ -3,256 +3,399 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stickman Starter Canvas</title>
+    <title>Ghostbuster Stickman</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    
     <style>
+        /* Base Resets & Layout */
         * {
-            box-sizing: border-box;
             user-select: none;
-            margin: 0;
-            padding: 0;
-            font-family: 'Courier New', Courier, monospace, sans-serif;
         }
-
         body {
-            background-color: #000000;
-            color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            height: 100vh;
-            overflow: hidden;
-            padding: 16px;
+            font-family: 'Outfit', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
         }
-
-        /* Top Header Bar */
-        #header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            max-width: 1100px;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #ffffff;
-        }
-
-        h1 {
-            font-size: 18px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            font-weight: bold;
-        }
-
-        .btn-reset {
-            background: transparent;
-            color: #ffffff;
-            border: 1px solid #ffffff;
-            padding: 6px 16px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.15s ease-in-out;
-        }
-
-        .btn-reset:hover {
-            background: #ffffff;
-            color: #000000;
-        }
-
-        /* Main Canvas Container */
-        #canvas-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 1100px;
-            flex-grow: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        canvas {
-            background-color: #000000;
-            border: 1px solid #ffffff;
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-
-        .instructions {
-            margin-top: 8px;
-            font-size: 11px;
-            color: #888888;
-            text-align: center;
+        .font-fredoka {
+            font-family: 'Fredoka', sans-serif;
         }
     </style>
 </head>
-<body>
+<body class="h-screen w-screen flex flex-col items-center overflow-hidden bg-slate-900 text-white p-4">
 
-    <!-- Header Section -->
-    <div id="header">
-        <h1>Stickman Engine</h1>
-        <button class="btn-reset" onclick="resetSimulation()">Reset</button>
+    <!-- UI DOM Header -->
+    <header class="w-full max-w-[1366px] flex justify-between items-center bg-slate-800/80 backdrop-blur-md rounded-xl p-4 mb-4 shadow-lg border border-purple-500/30">
+        <div class="flex items-center gap-4">
+            <h1 class="font-fredoka text-3xl font-bold text-amber-400 drop-shadow-md">Spooky Manor!</h1>
+            <span class="px-3 py-1 bg-purple-600 rounded-full text-sm font-bold tracking-wider animate-pulse">GHOST CATCHER</span>
+        </div>
+        
+        <div class="flex items-center gap-6">
+            <div class="text-xl font-semibold text-sky-300">
+                Ghosts Caught: <span id="scoreDisplay" class="text-3xl font-bold text-white ml-2">0</span>
+            </div>
+            <button onclick="resetSimulation()" class="font-fredoka bg-rose-500 hover:bg-rose-400 text-white px-6 py-2 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(244,63,94,0.5)]">
+                Restart
+            </button>
+        </div>
+    </header>
+
+    <!-- Canvas Wrapper -->
+    <div id="canvas-wrapper" class="relative w-full max-w-[1366px] flex-grow flex justify-center items-center rounded-xl overflow-hidden shadow-2xl border-4 border-slate-700">
+        <canvas id="simCanvas" class="block w-full h-full bg-slate-900"></canvas>
     </div>
 
-    <!-- Canvas Container -->
-    <div id="canvas-wrapper">
-        <canvas id="simCanvas"></canvas>
-    </div>
-
-    <div class="instructions">
-        [WASD] Move
+    <!-- Instructions Banner -->
+    <div class="mt-4 flex items-center justify-center gap-4 text-slate-400 font-semibold bg-slate-800 px-6 py-2 rounded-full border border-slate-700">
+        <span class="text-sky-400">[W A S D]</span> to move
+        <span class="w-2 h-2 rounded-full bg-slate-600"></span>
+        Get close to ghosts to suck them into your Pringles can!
     </div>
 
     <script>
         const canvas = document.getElementById('simCanvas');
         const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
 
-        // KEYBOARD INPUT STATE
-        const keys = {};
+        // GAME STATE
+        let keys = {};
+        let score = 0;
+        let ghosts = [];
+        let ghostSpawnTimer;
 
-        // STICKMAN PLAYER STATE
+        // PLAYER STATE
         const player = {
             x: 0,
             y: 0,
-            speed: 4.5,
+            speed: 5.5,
             facing: 1, // 1 = Right, -1 = Left
             walkFrame: 0
         };
 
+        // --- HARDWARE & RESIZING ---
         function resizeCanvas() {
             const wrapper = document.getElementById('canvas-wrapper');
             canvas.width = wrapper.clientWidth;
             canvas.height = wrapper.clientHeight;
-            
-            // Set initial position to exact center on first load
             if (player.x === 0 && player.y === 0) {
                 resetSimulation();
             }
         }
-
         window.addEventListener('resize', resizeCanvas);
 
-        // CONTROLS HANDLERS
+        // --- INPUT ENGINE ---
         window.addEventListener('keydown', (e) => {
-            if (['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.code)) {
+            // Block default scroll for arrows, but ONLY track WASD
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
                 e.preventDefault();
+                return; 
             }
-            keys[e.code] = true;
+            if (['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.code)) {
+                keys[e.code] = true;
+            }
         });
 
         window.addEventListener('keyup', (e) => {
-            keys[e.code] = false;
+            if (['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.code)) {
+                keys[e.code] = false;
+            }
         });
+
+        // Drift Prevention: Clear keys on focus loss
+        function clearKeys() { keys = {}; }
+        window.addEventListener('blur', clearKeys);
+        canvas.addEventListener('mouseleave', clearKeys);
+        document.addEventListener('visibilitychange', () => { if(document.hidden) clearKeys(); });
+
+        // --- GHOST MECHANICS ---
+        function spawnGhost() {
+            if (ghosts.length >= 25) return;
+            ghosts.push({
+                x: Math.random() * (canvas.width - 100) + 50,
+                y: Math.random() * (canvas.height - 100) + 50,
+                offset: Math.random() * Math.PI * 2,
+                size: 1, // Scale factor
+                sucking: false
+            });
+        }
 
         function resetSimulation() {
             player.x = canvas.width / 2;
-            player.y = canvas.height / 2;
+            player.y = canvas.height - 100;
             player.facing = 1;
             player.walkFrame = 0;
+            score = 0;
+            scoreDisplay.innerText = score;
+            ghosts = [];
+            
+            // Initial ghosts
+            for(let i=0; i<8; i++) spawnGhost();
+
+            // Ghost spawner (1 every 20 seconds)
+            if(ghostSpawnTimer) clearInterval(ghostSpawnTimer);
+            ghostSpawnTimer = setInterval(spawnGhost, 20000);
         }
 
+        // --- PHYSICS & LOGIC ---
         function updatePhysics() {
-            // Movement Direction Calculation
             let dx = 0;
             let dy = 0;
 
-            if (keys['KeyW'] || keys['Keyw']) dy -= 1;
-            if (keys['KeyS'] || keys['Keys']) dy += 1;
-            if (keys['KeyA'] || keys['Keya']) { dx -= 1; player.facing = -1; }
-            if (keys['KeyD'] || keys['Keyd']) { dx += 1; player.facing = 1; }
+            if (keys['KeyW']) dy -= 1;
+            if (keys['KeyS']) dy += 1;
+            if (keys['KeyA']) { dx -= 1; player.facing = -1; }
+            if (keys['KeyD']) { dx += 1; player.facing = 1; }
 
-            // Normalize diagonal movement vector speed
+            // Normalize diagonal movement
             if (dx !== 0 && dy !== 0) {
                 dx *= 0.7071;
                 dy *= 0.7071;
             }
 
-            // Update stickman position
             player.x += dx * player.speed;
             player.y += dy * player.speed;
 
-            // Keep stickman inside canvas boundaries
-            const margin = 15;
+            // Boundaries
+            const margin = 20;
             player.x = Math.max(margin, Math.min(canvas.width - margin, player.x));
-            player.y = Math.max(margin + 15, Math.min(canvas.height - margin - 10, player.y));
+            player.y = Math.max(margin + 20, Math.min(canvas.height - margin, player.y));
 
-            // Walk animation cycle updates
+            // Animation cycle
             if (dx !== 0 || dy !== 0) {
-                player.walkFrame += 0.25;
+                player.walkFrame += 0.3;
             } else {
                 player.walkFrame = 0;
             }
+
+            // Ghost Interactions
+            for (let i = ghosts.length - 1; i >= 0; i--) {
+                let g = ghosts[i];
+                
+                // Calculate distance to player's Pringles can roughly
+                let canX = player.x + (player.facing * 15);
+                let canY = player.y - 5;
+                let distX = canX - g.x;
+                let distY = canY - g.y;
+                let distance = Math.sqrt(distX*distX + distY*distY);
+
+                // Suck threshold
+                if (distance < 80) {
+                    g.sucking = true;
+                }
+
+                if (g.sucking) {
+                    // Pull ghost into the can
+                    g.x += distX * 0.15;
+                    g.y += distY * 0.15;
+                    g.size *= 0.85; // Shrink rapidly
+
+                    if (distance < 15 || g.size < 0.1) {
+                        ghosts.splice(i, 1);
+                        score++;
+                        scoreDisplay.innerText = score;
+                        scoreDisplay.parentElement.classList.add('text-amber-300', 'scale-110');
+                        setTimeout(() => scoreDisplay.parentElement.classList.remove('text-amber-300', 'scale-110'), 200);
+                    }
+                }
+            }
         }
 
-        function drawStickman(x, y, facing, walkFrame) {
-            ctx.strokeStyle = '#ffffff';
-            ctx.fillStyle = '#ffffff';
-            ctx.lineWidth = 1.8;
+        // --- DRAWING ENGINE ---
+        function drawBackground() {
+            // Spooky Night Sky
+            let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, '#2e1065'); // Deep purple
+            grad.addColorStop(1, '#0f172a'); // Dark slate
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Moon
+            ctx.fillStyle = '#fde047';
+            ctx.beginPath();
+            ctx.arc(canvas.width * 0.85, canvas.height * 0.2, 50, 0, Math.PI * 2);
+            ctx.fill();
+            // Moon craters
+            ctx.fillStyle = '#eab308';
+            ctx.beginPath(); ctx.arc(canvas.width * 0.85 - 15, canvas.height * 0.2 - 10, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(canvas.width * 0.85 + 20, canvas.height * 0.2 + 5, 12, 0, Math.PI * 2); ctx.fill();
+
+            // Haunted House Silhouette
+            ctx.fillStyle = '#020617'; // Very dark
+            const hx = canvas.width / 2;
+            const hy = canvas.height;
+            
+            // Main house body
+            ctx.fillRect(hx - 150, hy - 300, 300, 300);
+            // Tower 1
+            ctx.fillRect(hx - 220, hy - 200, 70, 200);
+            // Tower 2
+            ctx.fillRect(hx + 150, hy - 400, 80, 400);
+
+            // Roofs
+            ctx.beginPath();
+            ctx.moveTo(hx - 170, hy - 300); ctx.lineTo(hx, hy - 450); ctx.lineTo(hx + 170, hy - 300);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(hx - 240, hy - 200); ctx.lineTo(hx - 185, hy - 320); ctx.lineTo(hx - 130, hy - 200);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(hx + 130, hy - 400); ctx.lineTo(hx + 190, hy - 520); ctx.lineTo(hx + 250, hy - 400);
+            ctx.fill();
+
+            // Glowing Windows
+            ctx.fillStyle = '#f59e0b';
+            ctx.shadowColor = '#f59e0b';
+            ctx.shadowBlur = 15;
+            
+            const windows = [
+                {x: hx - 80, y: hy - 200}, {x: hx + 40, y: hy - 200},
+                {x: hx - 80, y: hy - 100}, {x: hx + 40, y: hy - 100},
+                {x: hx - 200, y: hy - 120}, {x: hx + 165, y: hy - 320},
+                {x: hx + 165, y: hy - 200}, {x: hx, y: hy - 350} // Attic
+            ];
+            
+            windows.forEach(w => {
+                ctx.fillRect(w.x, w.y, 40, 50);
+                // Window crossbars
+                ctx.fillStyle = '#020617';
+                ctx.shadowBlur = 0;
+                ctx.fillRect(w.x + 18, w.y, 4, 50);
+                ctx.fillRect(w.x, w.y + 23, 40, 4);
+                ctx.fillStyle = '#f59e0b';
+                ctx.shadowBlur = 15;
+            });
+            ctx.shadowBlur = 0; // Reset
+        }
+
+        function drawGhost(g) {
+            ctx.save();
+            ctx.translate(g.x, g.y + (!g.sucking ? Math.sin(Date.now() / 200 + g.offset) * 10 : 0));
+            ctx.scale(g.size, g.size);
+
+            // Ghost Aura
+            ctx.shadowColor = '#a5b4fc';
+            ctx.shadowBlur = 20;
+
+            // Ghost Body
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.beginPath();
+            ctx.arc(0, -10, 15, Math.PI, 0); // Top rounded head
+            ctx.lineTo(15, 15);
+            
+            // Wavy bottom
+            ctx.lineTo(7.5, 10);
+            ctx.lineTo(0, 15);
+            ctx.lineTo(-7.5, 10);
+            ctx.lineTo(-15, 15);
+            ctx.closePath();
+            ctx.fill();
+
+            // Eyes
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(-5, -12, 3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(5, -12, 3, 0, Math.PI*2); ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawPlayer(x, y, facing, walkFrame) {
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
 
-            // Halved character dimensions
-            const headRadius = 5;
-            const bodyLength = 15;
-            const legLength = 11;
+            const headRadius = 8;
+            const bodyLength = 22;
+            const legLength = 16;
             const neckY = y - bodyLength;
             const headY = neckY - headRadius;
-            const shoulderY = neckY + 4;
+            const shoulderY = neckY + 6;
 
-            // 1. Head
-            ctx.beginPath();
-            ctx.arc(x, headY, headRadius, 0, Math.PI * 2);
-            ctx.stroke();
+            const legSwing = Math.sin(walkFrame) * 8;
+            const armSwing = Math.sin(walkFrame + Math.PI) * 6;
 
-            // Eye direction indicator
-            ctx.beginPath();
-            ctx.arc(x + facing * 2, headY - 0.5, 0.8, 0, Math.PI * 2);
-            ctx.fill();
+            // --- GHOSTBUSTER BACKPACK (Proton Pack) ---
+            ctx.fillStyle = '#3f3f46'; // Dark grey
+            ctx.fillRect(x - (facing * 10) - 6, shoulderY - 2, 12, 20);
+            ctx.fillStyle = '#ef4444'; // Red light on pack
+            ctx.fillRect(x - (facing * 12) - 2, shoulderY + 2, 4, 4);
 
-            // 2. Torso
-            ctx.beginPath();
-            ctx.moveTo(x, neckY);
-            ctx.lineTo(x, y);
-            ctx.stroke();
-
-            // 3. Legs
-            const legSwing = Math.sin(walkFrame) * 6;
+            // --- SUIT & BODY ---
+            ctx.strokeStyle = '#d4d4d8'; // Tan/Beige Jumpsuit color
+            ctx.lineWidth = 4;
 
             // Left / Right Legs
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.lineTo(x - legSwing, y + legLength);
-            ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - legSwing, y + legLength); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + legSwing, y + legLength); ctx.stroke();
 
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.lineTo(x + legSwing, y + legLength);
-            ctx.stroke();
+            // Torso
+            ctx.beginPath(); ctx.moveTo(x, neckY); ctx.lineTo(x, y); ctx.stroke();
 
-            // 4. Back Arm
-            const armSwing = Math.sin(walkFrame + Math.PI) * 4;
-            ctx.beginPath();
-            ctx.moveTo(x, shoulderY);
-            ctx.lineTo(x - facing * 4 - armSwing, shoulderY + 6);
-            ctx.stroke();
+            // Back Arm
+            ctx.beginPath(); ctx.moveTo(x, shoulderY); ctx.lineTo(x - facing * 6 - armSwing, shoulderY + 8); ctx.stroke();
 
-            // 5. Front Arm
-            ctx.beginPath();
-            ctx.moveTo(x, shoulderY);
-            ctx.lineTo(x + facing * 4 + armSwing, shoulderY + 6);
-            ctx.stroke();
+            // Head (Skin color)
+            ctx.fillStyle = '#fca5a5';
+            ctx.strokeStyle = '#fca5a5';
+            ctx.beginPath(); ctx.arc(x, headY, headRadius, 0, Math.PI * 2); ctx.fill();
+            
+            // Eye & Goggles
+            ctx.fillStyle = '#10b981'; // Green goggles
+            ctx.fillRect(x + facing * 2 - 2, headY - 3, 6, 4);
+
+            // Front Arm (Holding Pringles Can)
+            const frontArmEndX = x + facing * 8 + armSwing;
+            const frontArmEndY = shoulderY + 6;
+            
+            ctx.strokeStyle = '#d4d4d8';
+            ctx.beginPath(); ctx.moveTo(x, shoulderY); ctx.lineTo(frontArmEndX, frontArmEndY); ctx.stroke();
+
+            // --- PRINGLES CAN ---
+            ctx.save();
+            ctx.translate(frontArmEndX, frontArmEndY);
+            // Angle the can slightly upwards in the direction of facing
+            ctx.rotate(facing * -Math.PI / 4);
+            
+            // Red Tube
+            ctx.fillStyle = '#ef4444'; 
+            ctx.fillRect(-4, -12, 8, 24);
+            
+            // Can Lid (White)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(-4.5, -14, 9, 3);
+            
+            // "Pringles" Logo dot
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath(); ctx.arc(0, -2, 2, 0, Math.PI*2); ctx.fill();
+
+            // Suck Beam (if sucking a ghost)
+            let isSucking = ghosts.some(g => g.sucking);
+            if (isSucking) {
+                ctx.fillStyle = 'rgba(167, 139, 250, 0.4)'; // Purple beam
+                ctx.beginPath();
+                ctx.moveTo(-3, -14);
+                ctx.lineTo(-20, -50);
+                ctx.lineTo(20, -50);
+                ctx.lineTo(3, -14);
+                ctx.fill();
+            }
+
+            ctx.restore();
         }
 
         function draw() {
-            // Clear canvas background
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Draw Stickman
-            drawStickman(player.x, player.y, player.facing, player.walkFrame);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            
+            // Sort ghosts so sucking ones get drawn correctly
+            ghosts.forEach(g => drawGhost(g));
+            
+            drawPlayer(player.x, player.y, player.facing, player.walkFrame);
         }
 
         function animate() {
