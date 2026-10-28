@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stickman Starter Canvas</title>
+    <title>Jungle Escape: Panther Statue Maze</title>
     <style>
         * {
             box-sizing: border-box;
@@ -14,8 +14,8 @@
         }
 
         body {
-            background-color: #000000;
-            color: #ffffff;
+            background-color: #050e06;
+            color: #4af626;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -34,7 +34,7 @@
             max-width: 1100px;
             margin-bottom: 12px;
             padding-bottom: 8px;
-            border-bottom: 1px solid #ffffff;
+            border-bottom: 2px solid #205c1d;
         }
 
         h1 {
@@ -42,12 +42,22 @@
             letter-spacing: 2px;
             text-transform: uppercase;
             font-weight: bold;
+            color: #2de331;
+            text-shadow: 0 0 8px rgba(45, 227, 49, 0.4);
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffd700;
         }
 
         .btn-reset {
             background: transparent;
-            color: #ffffff;
-            border: 1px solid #ffffff;
+            color: #4af626;
+            border: 1px solid #4af626;
             padding: 6px 16px;
             font-size: 14px;
             font-weight: bold;
@@ -58,8 +68,9 @@
         }
 
         .btn-reset:hover {
-            background: #ffffff;
-            color: #000000;
+            background: #4af626;
+            color: #050e06;
+            box-shadow: 0 0 10px #4af626;
         }
 
         /* Main Canvas Container */
@@ -74,18 +85,24 @@
         }
 
         canvas {
-            background-color: #000000;
-            border: 1px solid #ffffff;
+            background-color: #08140a;
+            border: 2px solid #205c1d;
             display: block;
             width: 100%;
             height: 100%;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
         }
 
         .instructions {
             margin-top: 8px;
-            font-size: 11px;
-            color: #888888;
+            font-size: 12px;
+            color: #6a9c68;
             text-align: center;
+        }
+
+        .rubies-count {
+            color: #ff3366;
+            text-shadow: 0 0 6px rgba(255, 51, 102, 0.6);
         }
     </style>
 </head>
@@ -93,8 +110,12 @@
 
     <!-- Header Section -->
     <div id="header">
-        <h1>Stickman Engine</h1>
-        <button class="btn-reset" onclick="resetSimulation()">Reset</button>
+        <h1>Jungle Escape</h1>
+        <div class="stats-bar">
+            <span>RUBIES: <span id="rubyScore" class="rubies-count">0 / 0</span></span>
+            <span id="statusText" style="color: #4af626;">ESCAPE THE SNAKES!</span>
+        </div>
+        <button class="btn-reset" onclick="resetSimulation()">Restart</button>
     </div>
 
     <!-- Canvas Container -->
@@ -103,7 +124,7 @@
     </div>
 
     <div class="instructions">
-        [WASD] Move
+        [WASD / Arrow Keys] Navigate Jungle Maze | Collect Rubies & Reach Panther Statue | Avoid Pits & Snakes!
     </div>
 
     <script>
@@ -113,21 +134,112 @@
         // KEYBOARD INPUT STATE
         const keys = {};
 
+        // MAZE CONFIGURATION (21x13 Grid)
+        const COLS = 21;
+        const ROWS = 13;
+        let grid = [];
+        let cellSize = 40;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        // GAME STATE
+        let rubiesCollected = 0;
+        let totalRubies = 0;
+        let gameState = 'PLAYING'; // PLAYING, WON, LOST
+
         // STICKMAN PLAYER STATE
         const player = {
             x: 0,
             y: 0,
-            speed: 4.5,
+            radius: 8,
+            speed: 3.2,
             facing: 1, // 1 = Right, -1 = Left
-            walkFrame: 0
+            walkFrame: 0,
+            alive: true
         };
+
+        // GAME OBJECTS
+        let snakes = [];
+        let rubies = [];
+        let pits = [];
+        let pantherStatue = { x: 0, y: 0, w: 0, h: 0 };
+        let particles = [];
+
+        // MAZE GENERATION (Recursive Backtracking)
+        function generateMaze() {
+            grid = Array.from({ length: ROWS }, () => 
+                Array.from({ length: COLS }, () => ({
+                    visited: false,
+                    walls: { top: true, right: true, bottom: true, left: true }
+                }))
+            );
+
+            function checkNeighbors(r, c) {
+                const neighbors = [];
+                if (r > 0 && !grid[r - 1][c].visited) neighbors.push({ r: r - 1, c, dir: 'top' });
+                if (c < COLS - 1 && !grid[r][c + 1].visited) neighbors.push({ r, c: c + 1, dir: 'right' });
+                if (r < ROWS - 1 && !grid[r + 1][c].visited) neighbors.push({ r: r + 1, c, dir: 'bottom' });
+                if (c > 0 && !grid[r][c - 1].visited) neighbors.push({ r, c: c - 1, dir: 'left' });
+
+                return neighbors.length > 0 ? neighbors[Math.floor(Math.random() * neighbors.length)] : null;
+            }
+
+            const stack = [];
+            let current = { r: 0, c: 0 };
+            grid[0][0].visited = true;
+
+            while (true) {
+                const next = checkNeighbors(current.r, current.c);
+                if (next) {
+                    grid[next.r][next.c].visited = true;
+                    stack.push(current);
+
+                    if (next.dir === 'top') {
+                        grid[current.r][current.c].walls.top = false;
+                        grid[next.r][next.c].walls.bottom = false;
+                    } else if (next.dir === 'right') {
+                        grid[current.r][current.c].walls.right = false;
+                        grid[next.r][next.c].walls.left = false;
+                    } else if (next.dir === 'bottom') {
+                        grid[current.r][current.c].walls.bottom = false;
+                        grid[next.r][next.c].walls.top = false;
+                    } else if (next.dir === 'left') {
+                        grid[current.r][current.c].walls.left = false;
+                        grid[next.r][next.c].walls.right = false;
+                    }
+                    current = { r: next.r, c: next.c };
+                } else if (stack.length > 0) {
+                    current = stack.pop();
+                } else {
+                    break;
+                }
+            }
+
+            // Create extra random openings to make it an interconnected jungle path
+            for (let r = 1; r < ROWS - 1; r++) {
+                for (let c = 1; c < COLS - 1; c++) {
+                    if (Math.random() < 0.18) {
+                        grid[r][c].walls.right = false;
+                        grid[r][c + 1].walls.left = false;
+                    }
+                }
+            }
+        }
 
         function resizeCanvas() {
             const wrapper = document.getElementById('canvas-wrapper');
             canvas.width = wrapper.clientWidth;
             canvas.height = wrapper.clientHeight;
             
-            // Set initial position to exact center on first load
+            // Calculate scale to fit maze snugly with padding
+            const padding = 20;
+            const availW = canvas.width - padding * 2;
+            const availH = canvas.height - padding * 2;
+            cellSize = Math.floor(Math.min(availW / COLS, availH / ROWS));
+            
+            offsetX = Math.floor((canvas.width - COLS * cellSize) / 2);
+            offsetY = Math.floor((canvas.height - ROWS * cellSize) / 2);
+
             if (player.x === 0 && player.y === 0) {
                 resetSimulation();
             }
@@ -137,7 +249,7 @@
 
         // CONTROLS HANDLERS
         window.addEventListener('keydown', (e) => {
-            if (['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.code)) {
+            if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
                 e.preventDefault();
             }
             keys[e.code] = true;
@@ -148,21 +260,133 @@
         });
 
         function resetSimulation() {
-            player.x = canvas.width / 2;
-            player.y = canvas.height / 2;
+            generateMaze();
+
+            // Set Stickman start in top-left cell
+            player.x = offsetX + cellSize / 2;
+            player.y = offsetY + cellSize / 2;
             player.facing = 1;
             player.walkFrame = 0;
+            player.alive = true;
+
+            rubiesCollected = 0;
+            gameState = 'PLAYING';
+            document.getElementById('statusText').innerText = "ESCAPE THE SNAKES!";
+            document.getElementById('statusText').style.color = "#4af626";
+
+            // Spawn Rubies in valid cells (excluding start & end)
+            rubies = [];
+            pits = [];
+            snakes = [];
+
+            const totalCells = COLS * ROWS;
+            const rubyCount = 8;
+            const pitCount = 7;
+
+            // Target Panther Statue at bottom-right corner
+            pantherStatue = {
+                c: COLS - 1,
+                r: ROWS - 1,
+                x: offsetX + (COLS - 1) * cellSize,
+                y: offsetY + (ROWS - 1) * cellSize,
+                w: cellSize,
+                h: cellSize
+            };
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if ((r === 0 && c === 0) || (r === ROWS - 1 && c === COLS - 1)) continue;
+
+                    const rand = Math.random();
+                    const cellCenterX = offsetX + c * cellSize + cellSize / 2;
+                    const cellCenterY = offsetY + r * cellSize + cellSize / 2;
+
+                    if (rand < 0.12 && rubies.length < rubyCount) {
+                        rubies.push({ x: cellCenterX, y: cellCenterY, collected: false, pulse: Math.random() * Math.PI });
+                    } else if (rand > 0.82 && pits.length < pitCount) {
+                        pits.push({ x: cellCenterX, y: cellCenterY, radius: cellSize * 0.32 });
+                    }
+                }
+            }
+
+            totalRubies = rubies.length;
+            document.getElementById('rubyScore').innerText = `${rubiesCollected} / ${totalRubies}`;
+
+            // Spawn chasing snakes
+            const snakeSpawns = [
+                { c: Math.floor(COLS / 2), r: 1 },
+                { c: 2, r: ROWS - 2 },
+                { c: COLS - 2, r: 2 }
+            ];
+
+            snakes = snakeSpawns.map(pos => {
+                const sx = offsetX + pos.c * cellSize + cellSize / 2;
+                const sy = offsetY + pos.r * cellSize + cellSize / 2;
+                return {
+                    x: sx,
+                    y: sy,
+                    speed: 1.6,
+                    history: Array.from({ length: 12 }, () => ({ x: sx, y: sy })),
+                    animFrame: Math.random() * 10
+                };
+            });
+
+            particles = [];
+        }
+
+        function createSparkles(x, y, color, count = 12) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 3 + 1;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    color: color
+                });
+            }
+        }
+
+        // COLLISION DETECTION WITH MAZE WALLS
+        function canMoveTo(newX, newY) {
+            const margin = player.radius;
+
+            // Check grid bounds
+            if (newX - margin < offsetX || newX + margin > offsetX + COLS * cellSize) return false;
+            if (newY - margin < offsetY || newY + margin > offsetY + ROWS * cellSize) return false;
+
+            // Calculate current & target cells
+            const c = Math.floor((newX - offsetX) / cellSize);
+            const r = Math.floor((newY - offsetY) / cellSize);
+
+            if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return false;
+
+            const cellX = offsetX + c * cellSize;
+            const cellY = offsetY + r * cellSize;
+            const cell = grid[r][c];
+
+            // Wall collisions
+            if (cell.walls.top && newY - margin < cellY) return false;
+            if (cell.walls.bottom && newY + margin > cellY + cellSize) return false;
+            if (cell.walls.left && newX - margin < cellX) return false;
+            if (cell.walls.right && newX + margin > cellX + cellSize) return false;
+
+            return true;
         }
 
         function updatePhysics() {
-            // Movement Direction Calculation
+            if (gameState !== 'PLAYING') return;
+
+            // Movement Input
             let dx = 0;
             let dy = 0;
 
-            if (keys['KeyW'] || keys['Keyw']) dy -= 1;
-            if (keys['KeyS'] || keys['Keys']) dy += 1;
-            if (keys['KeyA'] || keys['Keya']) { dx -= 1; player.facing = -1; }
-            if (keys['KeyD'] || keys['Keyd']) { dx += 1; player.facing = 1; }
+            if (keys['KeyW'] || keys['Keyw'] || keys['ArrowUp']) dy -= 1;
+            if (keys['KeyS'] || keys['Keys'] || keys['ArrowDown']) dy += 1;
+            if (keys['KeyA'] || keys['Keya'] || keys['ArrowLeft']) { dx -= 1; player.facing = -1; }
+            if (keys['KeyD'] || keys['Keyd'] || keys['ArrowRight']) { dx += 1; player.facing = 1; }
 
             // Normalize diagonal movement vector speed
             if (dx !== 0 && dy !== 0) {
@@ -170,37 +394,266 @@
                 dy *= 0.7071;
             }
 
-            // Update stickman position
-            player.x += dx * player.speed;
-            player.y += dy * player.speed;
+            const stepX = dx * player.speed;
+            const stepY = dy * player.speed;
 
-            // Keep stickman inside canvas boundaries
-            const margin = 15;
-            player.x = Math.max(margin, Math.min(canvas.width - margin, player.x));
-            player.y = Math.max(margin + 15, Math.min(canvas.height - margin - 10, player.y));
+            // Axis-aligned wall collision checks
+            if (canMoveTo(player.x + stepX, player.y)) {
+                player.x += stepX;
+            }
+            if (canMoveTo(player.x, player.y + stepY)) {
+                player.y += stepY;
+            }
 
-            // Walk animation cycle updates
+            // Walk animation frame update
             if (dx !== 0 || dy !== 0) {
                 player.walkFrame += 0.25;
             } else {
                 player.walkFrame = 0;
             }
+
+            // 1. Check Ruby Collectibles
+            rubies.forEach(ruby => {
+                if (!ruby.collected) {
+                    const dist = Math.hypot(player.x - ruby.x, player.y - ruby.y);
+                    if (dist < player.radius + 10) {
+                        ruby.collected = true;
+                        rubiesCollected++;
+                        createSparkles(ruby.x, ruby.y, '#ff3366', 15);
+                        document.getElementById('rubyScore').innerText = `${rubiesCollected} / ${totalRubies}`;
+                    }
+                }
+            });
+
+            // 2. Check Pit Hazards
+            pits.forEach(pit => {
+                const dist = Math.hypot(player.x - pit.x, player.y - pit.y);
+                if (dist < pit.radius * 0.7) {
+                    gameState = 'LOST';
+                    player.alive = false;
+                    document.getElementById('statusText').innerText = "FELL INTO A JUNGLE PIT!";
+                    document.getElementById('statusText').style.color = "#ff3344";
+                    createSparkles(player.x, player.y, '#553311', 20);
+                }
+            });
+
+            // 3. Update & Check Snakes Chasing Stickman
+            snakes.forEach(snake => {
+                snake.animFrame += 0.2;
+                
+                // Simple snake AI chasing player through maze space
+                const angle = Math.atan2(player.y - snake.y, player.x - snake.x);
+                const nextX = snake.x + Math.cos(angle) * snake.speed;
+                const nextY = snake.y + Math.sin(angle) * snake.speed;
+
+                snake.x = nextX;
+                snake.y = nextY;
+
+                // Update slithering tail segments history
+                snake.history.unshift({ x: snake.x, y: snake.y });
+                if (snake.history.length > 14) snake.history.pop();
+
+                // Collision with player
+                const dist = Math.hypot(player.x - snake.x, player.y - snake.y);
+                if (dist < player.radius + 8) {
+                    gameState = 'LOST';
+                    player.alive = false;
+                    document.getElementById('statusText').innerText = "CAUGHT BY A SNAKE!";
+                    document.getElementById('statusText').style.color = "#ff3344";
+                    createSparkles(player.x, player.y, '#2de331', 25);
+                }
+            });
+
+            // 4. Check Victory Panther Statue Reach
+            const statueCenterX = pantherStatue.x + pantherStatue.w / 2;
+            const statueCenterY = pantherStatue.y + pantherStatue.h / 2;
+            const distToStatue = Math.hypot(player.x - statueCenterX, player.y - statueCenterY);
+
+            if (distToStatue < cellSize * 0.6) {
+                if (rubiesCollected === totalRubies) {
+                    gameState = 'WON';
+                    document.getElementById('statusText').innerText = "ESCAPED! PANTHER SACRED BLESSING!";
+                    document.getElementById('statusText').style.color = "#ffd700";
+                    createSparkles(statueCenterX, statueCenterY, '#ffd700', 40);
+                } else {
+                    document.getElementById('statusText').innerText = `COLLECT ALL ${totalRubies} RUBIES FIRST!`;
+                    document.getElementById('statusText').style.color = "#ffaa00";
+                }
+            }
+
+            // Update particles
+            particles.forEach((p, idx) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.03;
+                if (p.life <= 0) particles.splice(idx, 1);
+            });
+        }
+
+        // DRAWING FUNCTIONS
+        function drawMaze() {
+            ctx.strokeStyle = '#1d5e27';
+            ctx.lineWidth = 3;
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const x = offsetX + c * cellSize;
+                    const y = offsetY + r * cellSize;
+                    const cell = grid[r][c];
+
+                    // Floor ground patch fill
+                    ctx.fillStyle = '#0a1a0d';
+                    ctx.fillRect(x, y, cellSize, cellSize);
+
+                    ctx.beginPath();
+                    if (cell.walls.top) { ctx.moveTo(x, y); ctx.lineTo(x + cellSize, y); }
+                    if (cell.walls.right) { ctx.moveTo(x + cellSize, y); ctx.lineTo(x + cellSize, y + cellSize); }
+                    if (cell.walls.bottom) { ctx.moveTo(x, y + cellSize); ctx.lineTo(x + cellSize, y + cellSize); }
+                    if (cell.walls.left) { ctx.moveTo(x, y); ctx.lineTo(x, y + cellSize); }
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function drawPits() {
+            pits.forEach(pit => {
+                ctx.fillStyle = '#030804';
+                ctx.beginPath();
+                ctx.arc(pit.x, pit.y, pit.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = '#221105';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+        }
+
+        function drawRubies() {
+            rubies.forEach(ruby => {
+                if (ruby.collected) return;
+
+                ruby.pulse += 0.08;
+                const scale = 1 + Math.sin(ruby.pulse) * 0.15;
+                const size = 6 * scale;
+
+                ctx.save();
+                ctx.translate(ruby.x, ruby.y);
+                ctx.fillStyle = '#ff3366';
+                ctx.shadowColor = '#ff3366';
+                ctx.shadowBlur = 10;
+
+                // Diamond ruby shape
+                ctx.beginPath();
+                ctx.moveTo(0, -size);
+                ctx.lineTo(size, 0);
+                ctx.lineTo(0, size);
+                ctx.lineTo(-size, 0);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore();
+            });
+        }
+
+        function drawPantherStatue() {
+            const x = pantherStatue.x;
+            const y = pantherStatue.y;
+            const w = pantherStatue.w;
+            const h = pantherStatue.h;
+
+            ctx.save();
+            ctx.fillStyle = '#111813';
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 2;
+            ctx.shadowColor = '#ffd700';
+            ctx.shadowBlur = (gameState === 'WON') ? 20 : 6;
+
+            // Pedestal Base
+            ctx.fillRect(x + 4, y + h - 10, w - 8, 8);
+            ctx.strokeRect(x + 4, y + h - 10, w - 8, 8);
+
+            // Panther Head Silhouette
+            ctx.fillStyle = '#1c261e';
+            ctx.beginPath();
+            ctx.moveTo(x + w * 0.2, y + h - 10);
+            ctx.lineTo(x + w * 0.3, y + h * 0.4);
+            ctx.lineTo(x + w * 0.2, y + h * 0.25); // Left Ear
+            ctx.lineTo(x + w * 0.4, y + h * 0.2);
+            ctx.lineTo(x + w * 0.5, y + h * 0.35); // Snout Center
+            ctx.lineTo(x + w * 0.6, y + h * 0.2);
+            ctx.lineTo(x + w * 0.8, y + h * 0.25); // Right Ear
+            ctx.lineTo(x + w * 0.7, y + h * 0.4);
+            ctx.lineTo(x + w * 0.8, y + h - 10);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Glowing Eyes
+            ctx.fillStyle = (rubiesCollected === totalRubies) ? '#00ffcc' : '#ff3300';
+            ctx.shadowColor = ctx.fillStyle;
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.arc(x + w * 0.38, y + h * 0.35, 2.5, 0, Math.PI * 2);
+            ctx.arc(x + w * 0.62, y + h * 0.35, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawSnakes() {
+            snakes.forEach(snake => {
+                ctx.save();
+                ctx.strokeStyle = '#39ff14';
+                ctx.lineCap = 'round';
+                ctx.shadowColor = '#39ff14';
+                ctx.shadowBlur = 6;
+
+                // Render serpentine slithering body segments
+                for (let i = 0; i < snake.history.length - 1; i++) {
+                    const seg1 = snake.history[i];
+                    const seg2 = snake.history[i + 1];
+                    const width = (snake.history.length - i) * 0.6;
+
+                    ctx.lineWidth = Math.max(1.5, width);
+                    ctx.beginPath();
+                    ctx.moveTo(seg1.x, seg1.y);
+                    ctx.lineTo(seg2.x, seg2.y);
+                    ctx.stroke();
+                }
+
+                // Snake Head
+                ctx.fillStyle = '#22aa0d';
+                ctx.beginPath();
+                ctx.arc(snake.x, snake.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Snake Red Eyes
+                ctx.fillStyle = '#ff0000';
+                ctx.beginPath();
+                ctx.arc(snake.x - 2, snake.y - 1, 1, 0, Math.PI * 2);
+                ctx.arc(snake.x + 2, snake.y - 1, 1, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            });
         }
 
         function drawStickman(x, y, facing, walkFrame) {
+            if (!player.alive) return;
+
             ctx.strokeStyle = '#ffffff';
             ctx.fillStyle = '#ffffff';
-            ctx.lineWidth = 1.8;
+            ctx.lineWidth = 2;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
 
-            // Halved character dimensions
-            const headRadius = 5;
-            const bodyLength = 15;
-            const legLength = 11;
+            // Stickman dimensions adapted for maze proportion
+            const headRadius = 4.5;
+            const bodyLength = 12;
+            const legLength = 9;
             const neckY = y - bodyLength;
             const headY = neckY - headRadius;
-            const shoulderY = neckY + 4;
+            const shoulderY = neckY + 3;
 
             // 1. Head
             ctx.beginPath();
@@ -219,7 +672,7 @@
             ctx.stroke();
 
             // 3. Legs
-            const legSwing = Math.sin(walkFrame) * 6;
+            const legSwing = Math.sin(walkFrame) * 5;
 
             // Left / Right Legs
             ctx.beginPath();
@@ -232,26 +685,45 @@
             ctx.lineTo(x + legSwing, y + legLength);
             ctx.stroke();
 
-            // 4. Back Arm
-            const armSwing = Math.sin(walkFrame + Math.PI) * 4;
+            // 4. Back & Front Arms
+            const armSwing = Math.sin(walkFrame + Math.PI) * 3.5;
             ctx.beginPath();
             ctx.moveTo(x, shoulderY);
-            ctx.lineTo(x - facing * 4 - armSwing, shoulderY + 6);
+            ctx.lineTo(x - facing * 3 - armSwing, shoulderY + 5);
             ctx.stroke();
 
-            // 5. Front Arm
             ctx.beginPath();
             ctx.moveTo(x, shoulderY);
-            ctx.lineTo(x + facing * 4 + armSwing, shoulderY + 6);
+            ctx.lineTo(x + facing * 3 + armSwing, shoulderY + 5);
             ctx.stroke();
+        }
+
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = Math.max(0, p.life);
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.globalAlpha = 1.0;
+            });
         }
 
         function draw() {
             // Clear canvas background
-            ctx.fillStyle = '#000000';
+            ctx.fillStyle = '#050e06';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw Stickman
+            // Render Level Elements
+            drawMaze();
+            drawPits();
+            drawPantherStatue();
+            drawRubies();
+            drawSnakes();
+            drawParticles();
+
+            // Render Player
             drawStickman(player.x, player.y, player.facing, player.walkFrame);
         }
 
